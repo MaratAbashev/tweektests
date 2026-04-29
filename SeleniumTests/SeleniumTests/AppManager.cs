@@ -5,17 +5,32 @@ using OpenQA.Selenium.Firefox;
 
 public class AppManager
 {
-    private readonly string _baseUrl = "https://tweek.so/ru";
+    private static ThreadLocal<AppManager> _app = new ThreadLocal<AppManager>();
 
-    public AppManager()
+    private readonly string _baseUrl = "https://tweek.so/ru";
+    private readonly IWebDriver _driver;
+
+    private AppManager()
     {
-        Driver = new FirefoxDriver();
+        _driver = new FirefoxDriver();
         Navigation = new NavigationHelper(this, _baseUrl);
         Auth = new LoginHelper(this);
         Task = new TaskHelper(this);
     }
 
-    public IWebDriver Driver { get; }
+    ~AppManager()
+    {
+        try
+        {
+            _driver.Quit();
+        }
+        catch (Exception)
+        {
+            // ignore
+        }
+    }
+
+    public IWebDriver Driver => _driver;
 
     public NavigationHelper Navigation { get; }
 
@@ -23,8 +38,15 @@ public class AppManager
 
     public TaskHelper Task { get; }
 
-    public void Stop()
+    public static AppManager GetInstance()
     {
-        Driver.Quit();
+        if (!_app.IsValueCreated)
+        {
+            AppManager newInstance = new AppManager();
+            newInstance.Navigation.GoToMainPage();
+            _app.Value = newInstance;
+        }
+
+        return _app.Value!;
     }
 }

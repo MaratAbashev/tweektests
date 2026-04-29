@@ -1,23 +1,72 @@
+using Xunit.Priority;
+
 namespace SeleniumTests;
 
-public class SuiteTests : IDisposable
+[CollectionDefinition("Sequential", DisableParallelization = true)]
+public class SequentialCollection { }
+
+[Collection("Sequential")]
+[TestCaseOrderer(PriorityOrderer.Name, PriorityOrderer.Assembly)]
+public class SuiteTests
 {
-    private readonly AppManager _app = new();
+    private readonly AppManager _app = AppManager.GetInstance();
     private readonly AccountData _accountData = new("maratabashevabashev@yandex.ru", "randomPassword123");
 
-    public void Dispose()
+    [Fact, Priority(1)]
+    public void LoginTest()
     {
-        _app.Stop();
+        if (!_app.Auth.IsLoggedIn)
+            _app.Auth.Login(_accountData);
+
+        Assert.True(_app.Auth.IsLoggedIn, "Пользователь должен быть авторизован после логина");
     }
 
-    [Fact]
-    public void TweekTest()
+    [Fact, Priority(2)]
+    public void CreateTaskTest()
     {
-        _app.Navigation.GoToMainPage();
-        _app.Auth.Login(_accountData);
-        _app.Task.CreateTask();
+        if (!_app.Auth.IsLoggedIn)
+            _app.Auth.Login(_accountData);
+
+        const string taskName = "Create task name";
+        _app.Task.CreateTask(taskName);
+
+        var createdTask = _app.Task.GetLastTaskName();
+        Assert.Equal(taskName, createdTask);
+    }
+
+    [Fact, Priority(3)]
+    public void DeleteTaskTest()
+    {
+        if (!_app.Auth.IsLoggedIn)
+            _app.Auth.Login(_accountData);
+
+        const string taskToDelete = "task to delete";
         _app.Task.CreateAndDeleteTask();
-        _app.Task.EditTask();
-        _app.Auth.Logout();
+
+        Assert.True(_app.Task.IsTaskDeleted(taskToDelete), $"Задача '{taskToDelete}' должна быть удалена");
+    }
+
+    [Fact, Priority(4)]
+    public void EditTaskTest()
+    {
+        if (!_app.Auth.IsLoggedIn)
+            _app.Auth.Login(_accountData);
+
+        _app.Task.CreateTask("Original task");
+
+        const string editedName = "Edit task name";
+        _app.Task.EditTask(editedName);
+
+        string actualName = _app.Task.GetEditedTaskName();
+        Assert.Equal(editedName, actualName);
+    }
+
+    [Fact, Priority(5)]
+    public void LogoutTest()
+    {
+        if(_app.Auth.IsLoggedIn)
+            _app.Auth.Logout();
+
+        Assert.False(_app.Auth.IsLoggedIn, "Пользователь должен быть разлогинен после выхода");
     }
 }
