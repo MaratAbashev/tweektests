@@ -1,4 +1,5 @@
 using Xunit.Priority;
+using System.Xml.Serialization;
 
 namespace SeleniumTests;
 
@@ -27,11 +28,25 @@ public class SuiteTests
         if (!_app.Auth.IsLoggedIn)
             _app.Auth.Login(_accountData);
 
-        const string taskName = "Create task name";
-        _app.Task.CreateTask(taskName);
+        var tasks = TaskDataFromXmlFile();
 
-        var createdTask = _app.Task.GetLastTaskName();
-        Assert.Equal(taskName, createdTask);
+        foreach (var taskData in tasks)
+        {
+            _app.Task.CreateTask(taskData.Name);
+
+            var createdTask = _app.Task.GetLastTaskName();
+            Assert.Equal(taskData.Name, createdTask);
+        }
+    }
+
+    public static IEnumerable<TaskData> TaskDataFromXmlFile()
+    {
+        var serializer = new XmlSerializer(
+            typeof(List<TaskData>),
+            new XmlRootAttribute("ArrayOfTaskData")
+        );
+        using var reader = new StreamReader("tasks.xml");
+        return (List<TaskData>)serializer.Deserialize(reader)!;
     }
 
     [Fact, Priority(3)]
@@ -41,7 +56,7 @@ public class SuiteTests
             _app.Auth.Login(_accountData);
 
         const string taskToDelete = "task to delete";
-        _app.Task.CreateAndDeleteTask();
+        _app.Task.CreateAndDeleteTask(taskToDelete);
 
         Assert.True(_app.Task.IsTaskDeleted(taskToDelete), $"Задача '{taskToDelete}' должна быть удалена");
     }
@@ -64,7 +79,7 @@ public class SuiteTests
     [Fact, Priority(5)]
     public void LogoutTest()
     {
-        if(_app.Auth.IsLoggedIn)
+        if (_app.Auth.IsLoggedIn)
             _app.Auth.Logout();
 
         Assert.False(_app.Auth.IsLoggedIn, "Пользователь должен быть разлогинен после выхода");

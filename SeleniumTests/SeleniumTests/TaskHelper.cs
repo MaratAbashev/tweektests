@@ -21,9 +21,9 @@ public class TaskHelper(AppManager manager) : HelperBase(manager)
         return FindElements(LastTaskSelector).Last().Text;
     }
 
-    public void CreateAndDeleteTask()
+    public void CreateAndDeleteTask(string taskName = "task to delete")
     {
-        FindElement(TaskInputSelector).SendKeys("task to delete");
+        FindElement(TaskInputSelector).SendKeys(taskName);
         FindElement(".App").Click();
         FindElements(LastTaskSelector).Last().Click();
         FindElement("svg:nth-child(2)").Click();
@@ -34,7 +34,7 @@ public class TaskHelper(AppManager manager) : HelperBase(manager)
 
     public bool IsTaskDeleted(string taskName)
     {
-        var tasks = Driver.FindElements(By.CssSelector(LastTaskSelector));
+        var tasks = FindElements(LastTaskSelector);
         return tasks.All(t => t.Text != taskName);
     }
 
